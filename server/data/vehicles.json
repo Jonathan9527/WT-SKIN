@@ -1,0 +1,159 @@
+{
+  "tank": {
+    "usa": {
+      "light_tank": [
+        {"id": "m22_locust", "name": "M22 Locust"},
+        {"id": "m24_chaffee", "name": "M24 Chaffee"},
+        {"id": "m41_walker_bulldog", "name": "M41 Walker Bulldog"}
+      ],
+      "medium_tank": [
+        {"id": "m4_sherman", "name": "M4 Sherman"},
+        {"id": "m4a1_sherman", "name": "M4A1 Sherman"},
+        {"id": "m4a3e8_sherman", "name": "M4A3E8 Sherman"},
+        {"id": "m26_pershing", "name": "M26 Pershing"},
+        {"id": "m46_patton", "name": "M46 Patton"},
+        {"id": "m48_patton", "name": "M48 Patton"},
+        {"id": "m60", "name": "M60"},
+        {"id": "m1_abrams", "name": "M1 Abrams"}
+      ],
+      "heavy_tank": [
+        {"id": "m4a3e2_jumbo", "name": "M4A3E2 Jumbo"},
+        {"id": "t26e1_1", "name": "T26E1-1"},
+        {"id": "t29", "name": "T29"},
+        {"id": "t34_heavy", "name": "T34"}
+      ],
+      "tank_destroyer": [
+        {"id": "m10_wolverine", "name": "M10 Wolverine"},
+        {"id": "m18_hellcat", "name": "M18 Hellcat"},
+        {"id": "m36_jackson", "name": "M36 Jackson"}
+      ],
+      "spaa": [
+        {"id": "m16_mgmc", "name": "M16 MGMC"},
+        {"id": "m42_duster", "name": "M42 Duster"}
+      ]
+    },
+    "germany": {
+      "light_tank": [
+        {"id": "pz_ii", "name": "Pz.II"},
+        {"id": "pz_38t", "name": "Pz.38(t)"},
+        {"id": "leopard_1", "name": "Leopard 1"}
+      ],
+      "medium_tank": [
+        {"id": "pz_iii", "name": "Pz.III"},
+        {"id": "pz_iv", "name": "Pz.IV"},
+        {"id": "panther_d", "name": "Panther D"},
+        {"id": "panther_a", "name": "Panther A"},
+        {"id": "panther_g", "name": "Panther G"}
+      ],
+      "heavy_tank": [
+        {"id": "tiger_h1", "name": "Tiger H1"},
+        {"id": "tiger_e", "name": "Tiger E"},
+        {"id": "tiger_ii_h", "name": "Tiger II (H)"},
+        {"id": "tiger_ii_p", "name": "Tiger II (P)"}
+      ],
+      "tank_destroyer": [
+        {"id": "stug_iii", "name": "StuG III"},
+        {"id": "jagdpanzer_iv", "name": "Jagdpanzer IV"},
+        {"id": "jagdpanther", "name": "Jagdpanther"},
+        {"id": "jagdtiger", "name": "Jagdtiger"}
+      ],
+      "spaa": [
+        {"id": "flakpanzer_38", "name": "Flakpanzer 38"},
+        {"id": "wirbelwind", "name": "Wirbelwind"},
+        {"id": "ostwind", "name": "Ostwind"}
+      ]
+    },
+    "ussr": {
+      "light_tank": [
+        {"id": "bt_5", "name": "BT-5"},
+        {"id": "bt_7", "name": "BT-7"},
+        {"id": "t_50", "name": "T-50"}
+      ],
+      "medium_tank": [
+        {"id": "t_34_1940", "name": "T-34 (1940)"},
+        {"id": "t_34_1941", "name": "T-34 (1941)"},
+        {"id": "t_34_1942", "name": "T-34 (1942)"},
+        {"id": "t_34_85", "name": "T-34-85"},
+        {"id": "t_44", "name": "T-44"},
+        {"id": "t_54", "name": "T-54"},
+        {"id": "t_62", "name": "T-62"},
+        {"id": "t_72", "name": "T-72"},
+        {"id": "t_80b", "name": "T-80B"}
+      ],
+      "heavy_tank": [
+        {"id": "kv_1", "name": "KV-1"},
+        {"id": "kv_2", "name": "KV-2"},
+        {"id": "is_1", "name": "IS-1"},
+        {"id": "is_2", "name": "IS-2"},
+        {"id": "is_3", "name": "IS-3"}
+      ],
+      "tank_destroyer": [
+        {"id": "su_85", "name": "SU-85"},
+        {"id": "su_100", "name": "SU-100"},
+        {"id": "su_152", "name": "SU-152"},
+        {"id": "isu_152", "name": "ISU-152"}
+      ],
+      "spaa": [
+        {"id": "zsu_37", "name": "ZSU-37"},
+        {"id": "zsu_57_2", "name": "ZSU-57-2"}
+      ]
+    }
+  },
+  "aircraft": {
+    "usa": {
+      "fighter": [
+        {"id": "p_40", "name": "P-40"},
+        {"id": "p_47", "name": "P-47 Thunderbolt"},
+        {"id": "p_51", "name": "P-51 Mustang"},
+        {"id": "f4u", "name": "F4U Corsair"},
+        {"id": "f_86", "name": "F-86 Sabre"}
+      ],
+      "attacker": [
+        {"id": "a_20", "name": "A-20 Havoc"},
+        {"id": "a_26", "name": "A-26 Invader"}
+      ],
+      "bomber": [
+        {"id": "b_17", "name": "B-17 Flying Fortress"},
+        {"id": "b_24", "name": "B-24 Liberator"},
+        {"id": "b_29", "name": "B-29 Superfortress"}
+      ]
+    },
+    "germany": {
+      "fighter": [
+        {"id": "bf_109_e", "name": "Bf 109 E"},
+        {"id": "bf_109_f", "name": "Bf 109 F"},
+        {"id": "bf_109_g", "name": "Bf 109 G"},
+        {"id": "fw_190_a", "name": "Fw 190 A"},
+        {"id": "me_262", "name": "Me 262"}
+      ],
+      "attacker": [
+        {"id": "ju_87", "name": "Ju 87 Stuka"},
+        {"id": "hs_129", "name": "Hs 129"}
+      ],
+      "bomber": [
+        {"id": "he_111", "name": "He 111"},
+        {"id": "ju_88", "name": "Ju 88"},
+        {"id": "do_217", "name": "Do 217"}
+      ]
+    },
+    "ussr": {
+      "fighter": [
+        {"id": "i_16", "name": "I-16"},
+        {"id": "yak_1", "name": "Yak-1"},
+        {"id": "yak_3", "name": "Yak-3"},
+        {"id": "yak_9", "name": "Yak-9"},
+        {"id": "la_5", "name": "La-5"},
+        {"id": "la_7", "name": "La-7"},
+        {"id": "mig_15", "name": "MiG-15"}
+      ],
+      "attacker": [
+        {"id": "il_2", "name": "IL-2"},
+        {"id": "il_10", "name": "IL-10"}
+      ],
+      "bomber": [
+        {"id": "pe_2", "name": "Pe-2"},
+        {"id": "tu_2", "name": "Tu-2"}
+      ]
+    }
+  }
+}
