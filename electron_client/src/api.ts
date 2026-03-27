@@ -16,6 +16,57 @@ export interface Vehicle {
   vehicle_class: string; skin_count: number;
 }
 
-export const getSkins = (params: Record<string, any>) => api.get('/skins', { params }).then(r => r.data);
+const electronAPI = window.electronAPI;
+
+// 带缓存的数据请求
+async function cachedGet(endpoint: string, params: Record<string, any>) {
+  // 尝试读缓存
+  if (electronAPI) {
+    const cached = await electronAPI.cacheGetData(endpoint, params);
+    if (cached) return cached;
+  }
+
+  // 请求网络
+  const res = await api.get(endpoint, { params });
+  const data = res.data;
+
+  // 写缓存 + 缓存图片
+  if (electronAPI && data?.status === 'OK') {
+    electronAPI.cacheSetData(endpoint, params, data);
+    // 异步缓存图片，不阻塞返回
+    cacheSkinsImages(data.data?.list);
+  }
+
+  return data;
+}
+
+// 异步批量缓存涂装图片
+async function cacheSkinsImages(skins?: Skin[]) {
+  if (!electronAPI || !skins?.length) return;
+  const urls = skins.map(s => s.image_url).filter(Boolean);
+  if (urls.length === 0) return;
+  try {
+    const mapping = await electronAPI.cacheImages(urls);
+    // 替换 skin 对象中的 image_url 为本地路径
+    skins.forEach(s => {
+      if (s.image_url && mapping[s.image_url]) {
+        s.image_url = mapping[s.image_url];
+      }
+    });
+  } catch {}
+}
+
+// 获取单个涂装的缓存图片 URL
+export async function getCachedImageUrl(url: string): Promise<string> {
+  if (!electronAPI || !url) return url;
+  try {
+    const mapping = await electronAPI.cacheImages([url]);
+    return mapping[url] || url;
+  } catch {
+    return url;
+  }
+}
+
+export const getSkins = (params: Record<string, any>) => cachedGet('/skins', params);
 export const getSkinDetail = (id: number) => api.get(`/skins/${id}`).then(r => r.data);
-export const getVehicles = (params: Record<string, string>) => api.get('/vehicles', { params }).then(r => r.data);
+export const getVehicles = (params: Record<string, string>) => cachedGet('/vehicles', params);

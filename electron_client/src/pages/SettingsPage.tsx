@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Check, Server, FolderSearch, FolderOpen, CheckCircle2, XCircle, Loader2, Gamepad2, HardDrive } from 'lucide-react';
+import { Save, Check, Server, FolderSearch, FolderOpen, CheckCircle2, XCircle, Loader2, Gamepad2, HardDrive, Trash2, Database } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const SettingsPage: React.FC = () => {
@@ -11,6 +11,8 @@ const SettingsPage: React.FC = () => {
   const [pathReason, setPathReason] = useState('');
   const [skinsExist, setSkinsExist] = useState(false);
   const [detecting, setDetecting] = useState(false);
+  const [cacheStats, setCacheStats] = useState<{ imageCount: number; imageSize: number; dataCount: number; dataSize: number; totalSize: number } | null>(null);
+  const [clearing, setClearing] = useState(false);
 
   const isElectron = !!window.electronAPI;
 
@@ -18,8 +20,29 @@ const SettingsPage: React.FC = () => {
   useEffect(() => {
     if (isElectron) {
       handleAutoDetect();
+      loadCacheStats();
     }
   }, []);
+
+  const loadCacheStats = async () => {
+    if (!window.electronAPI) return;
+    const stats = await window.electronAPI.cacheStats();
+    setCacheStats(stats);
+  };
+
+  const handleClearCache = async () => {
+    if (!window.electronAPI) return;
+    setClearing(true);
+    await window.electronAPI.cacheClear();
+    await loadCacheStats();
+    setClearing(false);
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes > 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
+    if (bytes > 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${bytes} B`;
+  };
 
   const handleAutoDetect = async () => {
     if (!window.electronAPI) return;
@@ -149,6 +172,38 @@ const SettingsPage: React.FC = () => {
               className="w-full h-9 border border-slate-200 rounded-lg px-3 text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 focus:bg-white transition-all" />
             <p className="text-[10px] text-slate-400 mt-1">后端 Go API 服务地址</p>
           </div>
+        </div>
+
+        {/* 缓存管理 */}
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <Database size={16} className="text-blue-500" />
+            缓存管理
+          </div>
+          <p className="text-[10px] text-slate-400">图片缓存 7 天，数据缓存 30 分钟，过期自动更新</p>
+
+          {cacheStats && (
+            <div className="bg-slate-50 rounded-lg p-3 space-y-1.5 border border-slate-100">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">图片缓存</span>
+                <span className="text-slate-700">{cacheStats.imageCount} 个文件 · {formatBytes(cacheStats.imageSize)}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">数据缓存</span>
+                <span className="text-slate-700">{cacheStats.dataCount} 条 · {formatBytes(cacheStats.dataSize)}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200">
+                <span className="text-slate-500 font-medium">总计</span>
+                <span className="text-slate-800 font-medium">{formatBytes(cacheStats.totalSize)}</span>
+              </div>
+            </div>
+          )}
+
+          <button onClick={handleClearCache} disabled={!isElectron || clearing}
+            className="h-8 px-3 border border-red-200 text-red-500 rounded-lg text-xs font-medium hover:bg-red-50 transition-all flex items-center gap-1.5 disabled:opacity-50">
+            {clearing ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+            清除所有缓存
+          </button>
         </div>
 
         {/* 保存按钮 */}

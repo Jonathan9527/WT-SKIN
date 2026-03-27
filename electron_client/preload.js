@@ -11,4 +11,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   winClose: () => ipcRenderer.invoke('win-close'),
   winHideToTray: () => ipcRenderer.invoke('win-hide-to-tray'),
   winIsMaximized: () => ipcRenderer.invoke('win-is-maximized'),
+  // 缓存
+  cacheImages: (urls) => ipcRenderer.invoke('cache-images', urls),
+  cacheGetData: (endpoint, params) => ipcRenderer.invoke('cache-get-data', endpoint, params),
+  cacheSetData: (endpoint, params, data) => ipcRenderer.invoke('cache-set-data', endpoint, params, data),
+  cacheClear: () => ipcRenderer.invoke('cache-clear'),
+  cacheStats: () => ipcRenderer.invoke('cache-stats'),
+  // 下载
+  getGamePath: () => ipcRenderer.invoke('get-game-path'),
+  downloadSkin: (skinData) => ipcRenderer.invoke('download-skin', skinData),
+  onDownloadProgress: (callback) => {
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on('download-progress', handler);
+    return () => ipcRenderer.removeListener('download-progress', handler);
+  },
+  // 皮肤管理
+  getInstalledSkins: () => ipcRenderer.invoke('get-installed-skins'),
+  deleteInstalledSkin: (folderName) => ipcRenderer.invoke('delete-installed-skin', folderName),
+  // 启动游戏
+  launchGame: () => ipcRenderer.invoke('launch-game'),
 });

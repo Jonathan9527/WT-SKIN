@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Store, Settings, Info, Crosshair } from 'lucide-react';
+import { Store, Settings, Info, Crosshair, FolderHeart, Gamepad2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TitleBar from './components/TitleBar';
 import StorePage from './pages/StorePage';
+import SkinsManager from './pages/SkinsManager';
 import SettingsPage from './pages/SettingsPage';
 import AboutPage from './pages/AboutPage';
 
 const navItems = [
   { key: 'store', label: '涂装商店', icon: Store },
+  { key: 'manager', label: '皮肤管理', icon: FolderHeart },
   { key: 'settings', label: '设置', icon: Settings },
   { key: 'about', label: '关于', icon: Info },
 ];
@@ -15,14 +17,27 @@ const navItems = [
 const App: React.FC = () => {
   const [page, setPage] = useState('store');
   const [dark, setDark] = useState(false);
+  const [launchMsg, setLaunchMsg] = useState('');
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
   }, [dark]);
 
-  const pages: Record<string, React.ReactNode> = {
-    store: <StorePage />, settings: <SettingsPage />, about: <AboutPage />,
+  const handleLaunchGame = async () => {
+    if (!window.electronAPI) return;
+    const res = await window.electronAPI.launchGame();
+    if (!res.success) {
+      setLaunchMsg(res.error || '启动失败');
+      setTimeout(() => setLaunchMsg(''), 3000);
+    }
   };
+
+  const pages = [
+    { key: 'store', node: <StorePage /> },
+    { key: 'manager', node: <SkinsManager /> },
+    { key: 'settings', node: <SettingsPage /> },
+    { key: 'about', node: <AboutPage /> },
+  ];
 
   return (
     <div className="flex flex-col h-screen">
@@ -53,12 +68,24 @@ const App: React.FC = () => {
               </button>
             ))}
           </nav>
+          <div className="px-2 pb-2">
+            <button onClick={handleLaunchGame}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs rounded-lg bg-gradient-to-r from-orange-500/80 to-amber-500/60 text-white hover:from-orange-500 hover:to-amber-500 transition-all shadow-sm">
+              <Gamepad2 size={14} />
+              启动游戏
+            </button>
+            {launchMsg && <div className="text-[10px] text-red-400 text-center mt-1">{launchMsg}</div>}
+          </div>
           <div className="p-3 border-t border-white/10 text-[10px] text-slate-500 text-center">v1.0.0</div>
         </div>
 
         {/* 内容区 */}
         <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
-          {pages[page]}
+          {pages.map(p => (
+            <div key={p.key} className="flex-1 flex flex-col overflow-hidden" style={{ display: page === p.key ? 'flex' : 'none' }}>
+              {p.node}
+            </div>
+          ))}
         </div>
       </div>
     </div>

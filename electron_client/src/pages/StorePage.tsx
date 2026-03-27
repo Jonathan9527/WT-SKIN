@@ -3,6 +3,7 @@ import { ThumbsUp, Eye, Download, Star, Loader2, Search, SlidersHorizontal } fro
 import { getSkins, getVehicles, Skin, Vehicle } from '@/api';
 import { VEHICLE_TYPES, COUNTRIES, VEHICLE_CLASSES, SORT_OPTIONS, PERIOD_OPTIONS } from '@/constants';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import ImageCarousel, { extractImages } from '@/components/ImageCarousel';
 import SkinDetail from './SkinDetail';
 
 const StorePage: React.FC = () => {
@@ -22,12 +23,17 @@ const StorePage: React.FC = () => {
   const fetchSkins = useCallback(async (p: number, append = false) => {
     setLoading(true);
     try {
-      const res = await getSkins({
-        vehicleType: filters.vehicleType, vehicleCountry: filters.vehicleCountry,
-        vehicleClass: filters.vehicleClass, vehicle: filters.vehicle,
+      const params: Record<string, any> = {
         sort: filters.sort, period: PERIOD_OPTIONS[filters.period],
-        search: filters.search, page: p, pageSize: 9,
-      });
+        page: p, pageSize: 9,
+      };
+      if (filters.vehicleType !== 'any') params.vehicleType = filters.vehicleType;
+      if (filters.vehicleCountry !== 'any') params.vehicleCountry = filters.vehicleCountry;
+      if (filters.vehicleClass !== 'any') params.vehicleClass = filters.vehicleClass;
+      if (filters.vehicle !== 'any') params.vehicle = filters.vehicle;
+      if (filters.search) params.search = filters.search;
+
+      const res = await getSkins(params);
       if (res.status === 'OK') {
         const list = res.data.list || [];
         setSkins(prev => append ? [...prev, ...list] : list);
@@ -74,13 +80,18 @@ const StorePage: React.FC = () => {
     setFilters(prev => {
       const next = { ...prev, [key]: val };
       if (key === 'vehicleType') { next.vehicleClass = 'any'; next.vehicle = 'any'; }
-      if (key === 'vehicleCountry' || key === 'vehicleClass') next.vehicle = 'any';
+      if (key === 'vehicleCountry') { next.vehicle = 'any'; }
+      if (key === 'vehicleClass') { next.vehicle = 'any'; }
       return next;
     });
   };
 
   const classOpts = filters.vehicleType !== 'any' ? VEHICLE_CLASSES[filters.vehicleType] || {} : {};
   const stripHtml = (s: string) => s?.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&') || '';
+
+  if (detailSkin) {
+    return <SkinDetail skin={detailSkin} onBack={() => setDetailSkin(null)} />;
+  }
 
   return (
     <>
@@ -90,8 +101,8 @@ const StorePage: React.FC = () => {
           <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mr-1">
             <SlidersHorizontal size={12} /><span>筛选</span>
           </div>
-          <FilterPill value={filters.vehicleType} options={VEHICLE_TYPES} onChange={v => update('vehicleType', v)} />
           <FilterPill value={filters.vehicleCountry} options={COUNTRIES} onChange={v => update('vehicleCountry', v)} />
+          <FilterPill value={filters.vehicleType} options={VEHICLE_TYPES} onChange={v => update('vehicleType', v)} />
           <FilterPill value={filters.vehicleClass} options={{ any: '全部子类型', ...classOpts }} onChange={v => update('vehicleClass', v)}
             disabled={filters.vehicleType === 'any'} />
           <select value={filters.vehicle} onChange={e => update('vehicle', e.target.value)}
@@ -133,10 +144,15 @@ const StorePage: React.FC = () => {
             <div key={skin.id} onClick={() => setDetailSkin(skin)}
               className="group bg-white dark:bg-slate-900 rounded-xl overflow-hidden cursor-pointer border border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300 h-[210px] flex flex-col">
               <div className="relative h-[120px] bg-gradient-to-br from-slate-100 to-slate-50 overflow-hidden">
-                <img src={skin.image_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  onError={e => (e.currentTarget.style.display = 'none')} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="absolute bottom-1.5 left-2 right-2 flex gap-2 text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <ImageCarousel
+                  images={extractImages(skin)}
+                  className="h-full"
+                  imgClassName="group-hover:scale-105 transition-transform duration-500"
+                  showDots={extractImages(skin).length > 1}
+                  onError={e => (e.currentTarget.style.display = 'none')}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                <div className="absolute bottom-1.5 left-2 right-2 flex gap-2 text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                   <span className="flex items-center gap-0.5"><ThumbsUp size={9} />{skin.likes}</span>
                   <span className="flex items-center gap-0.5"><Eye size={9} />{skin.views}</span>
                   <span className="flex items-center gap-0.5"><Download size={9} />{skin.downloads}</span>
@@ -158,7 +174,7 @@ const StorePage: React.FC = () => {
                     <span className="flex items-center gap-0.5"><Eye size={9} />{skin.views}</span>
                   </div>
                   {skin.vehicle_name && (
-                    <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full truncate max-w-[80px]">
+                    <span className="text-[9px] text-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded truncate max-w-[100px]">
                       {skin.vehicle_name}
                     </span>
                   )}
@@ -180,7 +196,6 @@ const StorePage: React.FC = () => {
         )}
       </ScrollArea>
 
-      {detailSkin && <SkinDetail skin={detailSkin} onClose={() => setDetailSkin(null)} />}
     </>
   );
 };
