@@ -184,15 +184,50 @@ func runSyncTask(sessionID, vehicleType, vehicleCountry, vehicleClass string) {
 				}
 				newInBatch++
 				newCount++
-				
-				// 获取载具信息
-				var vehicleInfo models.Vehicle
-				database.DB.Where("wt_live_id = ?", vehicle.ID).First(&vehicleInfo)
-				
+
+				// 使用当前遍历的载具信息直接回填（不依赖数据库查询）
+				updates := map[string]interface{}{}
+				if vehicle.Type != "" && skin.VehicleType == "" {
+					updates["vehicle_type"] = vehicle.Type
+				}
+				if vehicle.Class != "" && skin.VehicleClass == "" {
+					updates["vehicle_class"] = vehicle.Class
+				}
+				if vehicle.Name != "" && skin.VehicleName == "" {
+					updates["vehicle_name"] = vehicle.Name
+				}
+
 				// 初始化国家列表
-				countries := []string{vehicleInfo.Country}
-				countriesJSON, _ := json.Marshal(countries)
-				database.DB.Model(skin).Update("vehicle_countries", string(countriesJSON))
+				country := vehicle.Country
+				if country == "" {
+					// 兜底：从数据库查载具信息
+					var vehicleInfo models.Vehicle
+					if database.DB.Where("wt_live_id = ?", vehicle.ID).First(&vehicleInfo).Error == nil {
+						country = vehicleInfo.Country
+					}
+				}
+				if country != "" {
+					var countries []string
+					if skin.VehicleCountries != "" && skin.VehicleCountries != "null" && skin.VehicleCountries != "[]" {
+						json.Unmarshal([]byte(skin.VehicleCountries), &countries)
+					}
+					hasCountry := false
+					for _, c := range countries {
+						if c == country {
+							hasCountry = true
+							break
+						}
+					}
+					if !hasCountry {
+						countries = append(countries, country)
+					}
+					countriesJSON, _ := json.Marshal(countries)
+					updates["vehicle_countries"] = string(countriesJSON)
+				}
+
+				if len(updates) > 0 {
+					database.DB.Model(skin).Updates(updates)
+				}
 				
 				// 创建涂装-载具关联
 				skinVehicle := models.SkinVehicle{
@@ -215,11 +250,32 @@ func runSyncTask(sessionID, vehicleType, vehicleCountry, vehicleClass string) {
 					}
 					database.DB.Create(&skinVehicle)
 					
-					// 获取载具信息并更新国家列表
-					var vehicleInfo models.Vehicle
-					if database.DB.Where("wt_live_id = ?", vehicle.ID).First(&vehicleInfo).Error == nil {
-						updateSkinCountries(existingSkin.ID, vehicleInfo.Country)
+					// 使用当前载具的国家信息更新
+					country := vehicle.Country
+					if country == "" {
+						var vehicleInfo models.Vehicle
+						if database.DB.Where("wt_live_id = ?", vehicle.ID).First(&vehicleInfo).Error == nil {
+							country = vehicleInfo.Country
+						}
 					}
+					if country != "" {
+						updateSkinCountries(existingSkin.ID, country)
+					}
+				}
+
+				// 回填缺失的载具类型和子类型
+				updates := map[string]interface{}{}
+				if vehicle.Type != "" && existingSkin.VehicleType == "" {
+					updates["vehicle_type"] = vehicle.Type
+				}
+				if vehicle.Class != "" && existingSkin.VehicleClass == "" {
+					updates["vehicle_class"] = vehicle.Class
+				}
+				if vehicle.Name != "" && existingSkin.VehicleName == "" {
+					updates["vehicle_name"] = vehicle.Name
+				}
+				if len(updates) > 0 {
+					database.DB.Model(&existingSkin).Updates(updates)
 				}
 			}
 		}

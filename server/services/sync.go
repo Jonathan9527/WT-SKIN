@@ -154,8 +154,15 @@ func createSkinFromDetail(detail *WTLiveDetailResponse) models.Skin {
 	}
 	imagesStr, _ := json.Marshal(imagesJSON)
 
-	// 提取载具信息
-	vehicleType, _, vehicleClass := extractVehicleFromDescription(detail.Description)
+	// 提取载具信息（从描述中解析作为兜底）
+	vehicleType, country, vehicleClass := extractVehicleFromDescription(detail.Description)
+
+	// 如果从描述中解析到了国家，初始化国家列表
+	vehicleCountries := "[]"
+	if country != "" {
+		countriesJSON, _ := json.Marshal([]string{country})
+		vehicleCountries = string(countriesJSON)
+	}
 
 	// 提取标签
 	tags := extractTags(detail.Description)
@@ -170,7 +177,7 @@ func createSkinFromDetail(detail *WTLiveDetailResponse) models.Skin {
 		AuthorID:       detail.Author.ID,
 		AuthorAvatar:   detail.Author.Avatar,
 		VehicleType:    vehicleType,
-		VehicleCountries: "[]", // 初始化为空数组，后续通过关联载具更新
+		VehicleCountries: vehicleCountries,
 		VehicleClass:   vehicleClass,
 		Tags:           string(tagsStr),
 		Likes:          detail.Likes,
@@ -484,7 +491,8 @@ func SyncSkinsFromWTLive(vehicleType, vehicleCountry, vehicleClass, vehicle, sor
 		if wtLiveID > 0 {
 			// 检查是否已存在，如果不存在则创建基本记录
 			var existing models.Skin
-			if database.DB.Where("wt_live_id = ?", wtLiveID).First(&existing).Error != nil {
+			isNew := database.DB.Where("wt_live_id = ?", wtLiveID).First(&existing).Error != nil
+			if isNew {
 				// 创建基本记录，保存 id 和 lang_group
 				basicSkin := models.Skin{
 					WTLiveID:    wtLiveID,
@@ -502,9 +510,61 @@ func SyncSkinsFromWTLive(vehicleType, vehicleCountry, vehicleClass, vehicle, sor
 			}
 			
 			// 获取详情并更新完整信息
-			_, err := FetchSkinDetail(langGroup)
+			skin, err := FetchSkinDetail(langGroup)
 			if err == nil {
 				count++
+			} else {
+				continue
+			}
+
+			// 使用请求参数中的筛选条件回填载具信息（比解析 description 更可靠）
+			updates := map[string]interface{}{}
+			if vehicleType != "any" && vehicleType != "" && skin.VehicleType == "" {
+				updates["vehicle_type"] = vehicleType
+			}
+			if vehicleClass != "any" && vehicleClass != "" && skin.VehicleClass == "" {
+				updates["vehicle_class"] = vehicleClass
+			}
+			if vehicleCountry != "any" && vehicleCountry != "" {
+				// 更新国家列表
+				var countries []string
+				if skin.VehicleCountries != "" && skin.VehicleCountries != "null" && skin.VehicleCountries != "[]" {
+					json.Unmarshal([]byte(skin.VehicleCountries), &countries)
+				}
+				hasCountry := false
+				for _, c := range countries {
+					if c == vehicleCountry {
+						hasCountry = true
+						break
+					}
+				}
+				if !hasCountry {
+					countries = append(countries, vehicleCountry)
+					countriesJSON, _ := json.Marshal(countries)
+					updates["vehicle_countries"] = string(countriesJSON)
+				}
+			}
+			if len(updates) > 0 {
+				database.DB.Model(skin).Updates(updates)
+			}
+
+			// 如果指定了具体载具，创建 SkinVehicle 关联并回填载具名称
+			if vehicle != "any" && vehicle != "" {
+				var existingRelation models.SkinVehicle
+				if database.DB.Where("skin_id = ? AND vehicle_id = ?", skin.ID, vehicle).First(&existingRelation).Error != nil {
+					skinVehicle := models.SkinVehicle{
+						SkinID:    skin.ID,
+						VehicleID: vehicle,
+					}
+					database.DB.Create(&skinVehicle)
+				}
+				// 回填载具名称（如果为空）
+				if skin.VehicleName == "" {
+					var vehicleInfo models.Vehicle
+					if database.DB.Where("wt_live_id = ?", vehicle).First(&vehicleInfo).Error == nil && vehicleInfo.Name != "" {
+						database.DB.Model(skin).Update("vehicle_name", vehicleInfo.Name)
+					}
+				}
 			}
 		}
 	}
