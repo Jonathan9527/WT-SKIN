@@ -30,4 +30,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteInstalledSkin: (folderName) => ipcRenderer.invoke('delete-installed-skin', folderName),
   // 启动游戏
   launchGame: () => ipcRenderer.invoke('launch-game'),
+  // 本地数据库
+  dbQuerySkins: (params) => ipcRenderer.invoke('db-query-skins', params),
+  dbQueryVehicles: (params) => ipcRenderer.invoke('db-query-vehicles', params),
+  dbGetSkinDetail: (id) => ipcRenderer.invoke('db-get-skin-detail', id),
+  dbGetLocalVersion: () => ipcRenderer.invoke('db-get-local-version'),
+  dbGetStats: () => ipcRenderer.invoke('db-get-stats'),
+  dbSyncDatapack: (serverUrl) => ipcRenderer.invoke('db-sync-datapack', serverUrl),
+  onDbSyncProgress: (callback) => {
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on('db-sync-progress', handler);
+    return () => ipcRenderer.removeListener('db-sync-progress', handler);
+  },
 });

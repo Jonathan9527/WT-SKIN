@@ -7,6 +7,7 @@ const http = require('http');
 const { createWriteStream } = require('fs');
 const { pipeline } = require('stream/promises');
 const cache = require('./cache');
+const localDB = require('./local-db');
 
 let mainWindow;
 let tray = null;
@@ -182,6 +183,28 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
 
+  // 初始化本地数据库
+  localDB.initDB();
+
+  // 本地数据库 IPC
+  ipcMain.handle('db-query-skins', (_, params) => localDB.querySkins(params));
+  ipcMain.handle('db-query-vehicles', (_, params) => localDB.queryVehicles(params));
+  ipcMain.handle('db-get-skin-detail', (_, id) => localDB.getSkinDetail(id));
+  ipcMain.handle('db-get-local-version', () => localDB.getLocalVersion());
+  ipcMain.handle('db-get-stats', () => localDB.getDBStats());
+  ipcMain.handle('db-sync-datapack', async (_, serverUrl) => {
+    try {
+      const result = await localDB.downloadDataPack(serverUrl, (progress) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('db-sync-progress', progress);
+        }
+      });
+      return { success: true, ...result };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  });
+
   // 缓存 IPC
   ipcMain.handle('cache-images', (_, urls) => cache.cacheImages(urls));
   ipcMain.handle('cache-get-data', (_, endpoint, params) => cache.getDataCache(endpoint, params));
@@ -331,7 +354,10 @@ app.whenReady().then(() => {
   });
 });
 
-app.on('before-quit', () => { isQuitting = true; });
+app.on('before-quit', () => {
+  isQuitting = true;
+  localDB.closeDB();
+});
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
 // ---- 工具函数 ----

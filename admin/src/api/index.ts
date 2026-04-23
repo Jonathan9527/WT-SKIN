@@ -58,4 +58,10 @@ export const startSync = (data: any) => api.post('/sync/start', data)
 export const getSyncStatus = (sessionId: string) => api.get('/sync/status', { params: { session_id: sessionId } })
 export const getSyncSessions = (limit = 10) => api.get('/sync/sessions', { params: { limit } })
 
+// 数据包相关
+export const generateDataPack = () => api.post('/datapack/generate', null, { timeout: 120000 })
+export const getDataPacks = () => api.get('/datapack/list')
+export const publishDataPack = (version: string) => api.post('/datapack/publish', { version })
+export const deleteDataPack = (version: string) => api.delete(`/datapack/${version}`)
+
 export default api

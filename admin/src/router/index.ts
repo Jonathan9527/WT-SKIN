@@ -44,6 +44,12 @@ const router = createRouter({
           meta: { title: '载具同步', icon: 'cloud-sync' }
         },
         {
+          path: 'datapack',
+          name: 'DataPack',
+          component: () => import('../views/DataPack.vue'),
+          meta: { title: '数据包管理', icon: 'database' }
+        },
+        {
           path: 'users',
           name: 'Users',
           component: () => import('../views/Users.vue'),

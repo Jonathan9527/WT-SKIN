@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ThumbsUp, Eye, Download, Star, Loader2, Search, SlidersHorizontal } from 'lucide-react';
-import { getSkins, getVehicles, Skin, Vehicle } from '@/api';
+import { ThumbsUp, Eye, Download, Star, Loader2, Search, SlidersHorizontal, DatabaseZap } from 'lucide-react';
+import { Skin } from '@/api';
 import { VEHICLE_TYPES, COUNTRIES, VEHICLE_CLASSES, SORT_OPTIONS, PERIOD_OPTIONS } from '@/constants';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import ImageCarousel, { extractImages } from '@/components/ImageCarousel';
 import SkinDetail from './SkinDetail';
 
 const StorePage: React.FC = () => {
@@ -11,8 +10,10 @@ const StorePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [total, setTotal] = useState(0);
+  const [vehicles, setVehicles] = useState<any[]>([]);
   const [detailSkin, setDetailSkin] = useState<Skin | null>(null);
+  const [dbReady, setDbReady] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [filters, setFilters] = useState({
@@ -20,40 +21,55 @@ const StorePage: React.FC = () => {
     vehicle: 'any', sort: 'created', period: '所有时间', search: '',
   });
 
+  const isElectron = !!window.electronAPI?.dbQuerySkins;
+
+  // 检查本地数据库状态
+  useEffect(() => {
+    if (isElectron) {
+      window.electronAPI!.dbGetStats().then(stats => {
+        setDbReady(stats.skinCount > 0);
+      });
+    }
+  }, []);
+
   const fetchSkins = useCallback(async (p: number, append = false) => {
+    if (!isElectron) return;
     setLoading(true);
     try {
-      const params: Record<string, any> = {
-        sort: filters.sort, period: PERIOD_OPTIONS[filters.period],
-        page: p, pageSize: 9,
-      };
-      if (filters.vehicleType !== 'any') params.vehicleType = filters.vehicleType;
-      if (filters.vehicleCountry !== 'any') params.vehicleCountry = filters.vehicleCountry;
-      if (filters.vehicleClass !== 'any') params.vehicleClass = filters.vehicleClass;
-      if (filters.vehicle !== 'any') params.vehicle = filters.vehicle;
-      if (filters.search) params.search = filters.search;
-
-      const res = await getSkins(params);
-      if (res.status === 'OK') {
-        const list = res.data.list || [];
-        setSkins(prev => append ? [...prev, ...list] : list);
-        setHasMore(list.length >= 9);
-      }
-    } catch (e) { console.error(e); }
+      const result = await window.electronAPI!.dbQuerySkins({
+        vehicleType: filters.vehicleType,
+        vehicleCountry: filters.vehicleCountry,
+        vehicleClass: filters.vehicleClass,
+        vehicle: filters.vehicle,
+        sort: filters.sort,
+        period: PERIOD_OPTIONS[filters.period],
+        search: filters.search,
+        page: p,
+        pageSize: 9,
+      });
+      const list = result.list || [];
+      setSkins(prev => append ? [...prev, ...list] : list);
+      setTotal(result.total || 0);
+      setHasMore(list.length >= 9);
+    } catch (e) {
+      console.error('查询本地数据库失败:', e);
+    }
     setLoading(false);
-  }, [filters]);
+  }, [filters, isElectron]);
 
   useEffect(() => { setPage(0); fetchSkins(0); }, [fetchSkins]);
 
+  // 加载载具列表
   useEffect(() => {
+    if (!isElectron) return;
     if (filters.vehicleType === 'any') { setVehicles([]); return; }
     const params: Record<string, string> = { type: filters.vehicleType };
     if (filters.vehicleCountry !== 'any') params.country = filters.vehicleCountry;
     if (filters.vehicleClass !== 'any') params['class'] = filters.vehicleClass;
-    getVehicles(params).then(res => { if (res.status === 'OK') setVehicles(res.data || []); });
-  }, [filters.vehicleType, filters.vehicleCountry, filters.vehicleClass]);
+    window.electronAPI!.dbQueryVehicles(params).then(res => setVehicles(res || []));
+  }, [filters.vehicleType, filters.vehicleCountry, filters.vehicleClass, isElectron]);
 
-  // Attach scroll listener to Radix Viewport
+  // 无限滚动
   useEffect(() => {
     const root = scrollRef.current;
     if (!root) return;
@@ -62,7 +78,7 @@ const StorePage: React.FC = () => {
 
     let loadingRef = false;
     const onScroll = () => {
-      if (loadingRef) return;
+      if (loadingRef || !hasMore) return;
       if (viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - 200) {
         loadingRef = true;
         setPage(prev => {
@@ -80,8 +96,7 @@ const StorePage: React.FC = () => {
     setFilters(prev => {
       const next = { ...prev, [key]: val };
       if (key === 'vehicleType') { next.vehicleClass = 'any'; next.vehicle = 'any'; }
-      if (key === 'vehicleCountry') { next.vehicle = 'any'; }
-      if (key === 'vehicleClass') { next.vehicle = 'any'; }
+      if (key === 'vehicleCountry' || key === 'vehicleClass') next.vehicle = 'any';
       return next;
     });
   };
@@ -89,6 +104,20 @@ const StorePage: React.FC = () => {
   const classOpts = filters.vehicleType !== 'any' ? VEHICLE_CLASSES[filters.vehicleType] || {} : {};
   const stripHtml = (s: string) => s?.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&') || '';
 
+  // 数据库为空提示
+  if (!dbReady && isElectron) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <DatabaseZap size={48} className="mx-auto text-slate-300" />
+          <div className="text-lg font-semibold text-slate-600 dark:text-slate-300">本地数据库为空</div>
+          <div className="text-sm text-slate-400">请前往「设置」页面同步数据包</div>
+        </div>
+      </div>
+    );
+  }
+
+  // 涂装详情页
   if (detailSkin) {
     return <SkinDetail skin={detailSkin} onBack={() => setDetailSkin(null)} />;
   }
@@ -101,15 +130,15 @@ const StorePage: React.FC = () => {
           <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mr-1">
             <SlidersHorizontal size={12} /><span>筛选</span>
           </div>
-          <FilterPill value={filters.vehicleCountry} options={COUNTRIES} onChange={v => update('vehicleCountry', v)} />
           <FilterPill value={filters.vehicleType} options={VEHICLE_TYPES} onChange={v => update('vehicleType', v)} />
+          <FilterPill value={filters.vehicleCountry} options={COUNTRIES} onChange={v => update('vehicleCountry', v)} />
           <FilterPill value={filters.vehicleClass} options={{ any: '全部子类型', ...classOpts }} onChange={v => update('vehicleClass', v)}
             disabled={filters.vehicleType === 'any'} />
           <select value={filters.vehicle} onChange={e => update('vehicle', e.target.value)}
             disabled={filters.vehicleType === 'any'}
             className="h-6 text-[11px] border border-slate-200 rounded-full px-2 bg-white disabled:opacity-40 max-w-[130px] focus:outline-none focus:ring-1 focus:ring-blue-400">
             <option value="any">全部载具</option>
-            {vehicles.map(v => <option key={v.wt_live_id} value={v.wt_live_id}>{v.name} ({v.skin_count})</option>)}
+            {vehicles.map((v: any) => <option key={v.wt_live_id} value={v.wt_live_id}>{v.name} ({v.skin_count})</option>)}
           </select>
           <div className="w-px h-4 bg-slate-200 mx-0.5" />
           <FilterPill value={filters.sort} options={SORT_OPTIONS} onChange={v => update('sort', v)} />
@@ -133,26 +162,21 @@ const StorePage: React.FC = () => {
 
       {/* 状态栏 */}
       <div className="px-3 py-1 text-[11px] text-slate-400 flex justify-between items-center bg-white/50 dark:bg-slate-900/50">
-        <span>已加载 <span className="text-slate-600 font-medium">{skins.length}</span> 个涂装</span>
+        <span>已加载 <span className="text-slate-600 dark:text-slate-300 font-medium">{skins.length}</span> / {total} 个涂装 <span className="text-blue-400">（本地数据）</span></span>
         {loading && <span className="flex items-center gap-1"><Loader2 size={10} className="animate-spin" />加载中...</span>}
       </div>
 
       {/* 九宫格 - ScrollArea */}
       <ScrollArea ref={scrollRef} className="flex-1">
         <div className="grid grid-cols-3 gap-3 p-3">
-          {skins.map(skin => (
+          {skins.map((skin: any) => (
             <div key={skin.id} onClick={() => setDetailSkin(skin)}
               className="group bg-white dark:bg-slate-900 rounded-xl overflow-hidden cursor-pointer border border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300 h-[210px] flex flex-col">
               <div className="relative h-[120px] bg-gradient-to-br from-slate-100 to-slate-50 overflow-hidden">
-                <ImageCarousel
-                  images={extractImages(skin)}
-                  className="h-full"
-                  imgClassName="group-hover:scale-105 transition-transform duration-500"
-                  showDots={extractImages(skin).length > 1}
-                  onError={e => (e.currentTarget.style.display = 'none')}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                <div className="absolute bottom-1.5 left-2 right-2 flex gap-2 text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                <img src={skin.image_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  onError={e => (e.currentTarget.style.display = 'none')} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-1.5 left-2 right-2 flex gap-2 text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <span className="flex items-center gap-0.5"><ThumbsUp size={9} />{skin.likes}</span>
                   <span className="flex items-center gap-0.5"><Eye size={9} />{skin.views}</span>
                   <span className="flex items-center gap-0.5"><Download size={9} />{skin.downloads}</span>
@@ -174,7 +198,7 @@ const StorePage: React.FC = () => {
                     <span className="flex items-center gap-0.5"><Eye size={9} />{skin.views}</span>
                   </div>
                   {skin.vehicle_name && (
-                    <span className="text-[9px] text-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded truncate max-w-[100px]">
+                    <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full truncate max-w-[80px]">
                       {skin.vehicle_name}
                     </span>
                   )}
@@ -189,13 +213,12 @@ const StorePage: React.FC = () => {
           </div>
         )}
         {!hasMore && skins.length > 0 && <div className="text-center py-4 text-xs text-slate-300">— 已经到底了 —</div>}
-        {!loading && skins.length === 0 && (
+        {!loading && skins.length === 0 && dbReady && (
           <div className="flex items-center justify-center py-20 text-slate-300">
             <div className="text-center"><Search size={32} className="mx-auto mb-2" /><div className="text-sm">暂无涂装数据</div></div>
           </div>
         )}
       </ScrollArea>
-
     </>
   );
 };

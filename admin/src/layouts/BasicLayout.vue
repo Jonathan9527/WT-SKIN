@@ -26,6 +26,10 @@
           <CloudSyncOutlined />
           <span>载具同步</span>
         </a-menu-item>
+        <a-menu-item key="datapack" @click="$router.push('/datapack')">
+          <DatabaseOutlined />
+          <span>数据包管理</span>
+        </a-menu-item>
         <a-menu-item key="users" @click="$router.push('/users')">
           <UserOutlined />
           <span>用户管理</span>
@@ -73,6 +77,7 @@ import {
   BarChartOutlined,
   SyncOutlined,
   CloudSyncOutlined,
+  DatabaseOutlined,
   UserOutlined,
   SettingOutlined,
   LogoutOutlined

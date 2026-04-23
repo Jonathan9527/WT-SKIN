@@ -33,3 +33,7 @@ electron_client/node_modules/
 electron_client/dist/
 admin/node_modules/
 admin/dist/
+
+# SQLite data packs (too large for git)
+electron_client/data/*.db
+server/data/packs/

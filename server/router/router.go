@@ -90,7 +90,17 @@ func Setup() *gin.Engine {
 
 		// 载具相关（四级筛选）
 		client.GET("/vehicles", handlers.GetVehiclesFromDB)
+
+		// 数据包相关（SQLite 离线数据）
+		client.GET("/datapack/version", handlers.GetDataPackVersion)
+		client.GET("/datapack/download", handlers.DownloadDataPack)
 	}
+
+	// Admin 数据包管理
+	api.POST("/datapack/generate", handlers.GenerateDataPack)
+	api.GET("/datapack/list", handlers.GetAllDataPacks)
+	api.POST("/datapack/publish", handlers.PublishDataPack)
+	api.DELETE("/datapack/:version", handlers.DeleteDataPack)
 
 	return r
 }

@@ -7,6 +7,7 @@ import (
 	"warthunder-server/config"
 	"warthunder-server/database"
 	"warthunder-server/router"
+	"warthunder-server/services"
 )
 
 func main() {
@@ -26,6 +27,9 @@ func main() {
 
 	// 启动路由
 	r := router.Setup()
+
+	// 加载数据包元数据
+	services.LoadPackMeta()
 
 	port := os.Getenv("PORT")
 	if port == "" {

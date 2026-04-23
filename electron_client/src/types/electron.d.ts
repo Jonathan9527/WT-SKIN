@@ -23,6 +23,14 @@ interface ElectronAPI {
   deleteInstalledSkin: (folderName: string) => Promise<{ success: boolean; error?: string }>;
   // 启动游戏
   launchGame: () => Promise<{ success: boolean; error?: string }>;
+  // 本地数据库
+  dbQuerySkins: (params: Record<string, any>) => Promise<{ list: any[]; total: number; page: number }>;
+  dbQueryVehicles: (params: Record<string, any>) => Promise<any[]>;
+  dbGetSkinDetail: (id: number) => Promise<{ skin: any; images: any[]; vehicles: any[] } | null>;
+  dbGetLocalVersion: () => Promise<{ version: string | null; skinCount: number; vehicleCount: number }>;
+  dbGetStats: () => Promise<{ skinCount: number; vehicleCount: number; version: string | null; fileSize: number; dbPath: string }>;
+  dbSyncDatapack: (serverUrl: string) => Promise<{ success: boolean; version?: string; skinCount?: number; vehicleCount?: number; error?: string }>;
+  onDbSyncProgress: (callback: (data: { downloaded: number; total: number; percent: number }) => void) => () => void;
 }
 
 declare global {
