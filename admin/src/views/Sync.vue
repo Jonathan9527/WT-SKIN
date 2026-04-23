@@ -1,134 +1,102 @@
 <template>
   <div>
-    <h2>数据同步</h2>
-    <a-card title="从 War Thunder Live 同步涂装数据">
-      <a-form :model="syncForm" layout="vertical">
-        <a-row :gutter="16">
-          <a-col :span="6">
-            <a-form-item label="载具类型">
-              <a-select v-model:value="syncForm.vehicleType" @change="onVehicleTypeChange">
-                <a-select-option value="any">全部</a-select-option>
-                <a-select-option value="tank">坦克</a-select-option>
-                <a-select-option value="aircraft">飞机</a-select-option>
-                <a-select-option value="helicopter">直升机</a-select-option>
-                <a-select-option value="ship">舰船</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          <a-col :span="6">
-            <a-form-item label="国家">
-              <a-select v-model:value="syncForm.vehicleCountry" @change="onCountryChange">
-                <a-select-option value="any">全部</a-select-option>
-                <a-select-option value="usa">美国</a-select-option>
-                <a-select-option value="germany">德国</a-select-option>
-                <a-select-option value="ussr">苏联</a-select-option>
-                <a-select-option value="britain">英国</a-select-option>
-                <a-select-option value="japan">日本</a-select-option>
-                <a-select-option value="china">中国</a-select-option>
-                <a-select-option value="france">法国</a-select-option>
-                <a-select-option value="italy">意大利</a-select-option>
-                <a-select-option value="sweden">瑞典</a-select-option>
-                <a-select-option value="israel">以色列</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          <a-col :span="6">
-            <a-form-item label="载具子类型">
-              <a-select v-model:value="syncForm.vehicleClass" @change="onClassChange" :disabled="syncForm.vehicleType === 'any'">
-                <a-select-option value="any">全部</a-select-option>
-                <template v-if="syncForm.vehicleType === 'tank'">
-                  <a-select-option value="light_tank">轻型坦克</a-select-option>
-                  <a-select-option value="medium_tank">中型坦克</a-select-option>
-                  <a-select-option value="heavy_tank">重型坦克</a-select-option>
-                  <a-select-option value="tank_destroyer">坦克歼击车</a-select-option>
-                  <a-select-option value="spaa">自行防空炮</a-select-option>
-                </template>
-                <template v-else-if="syncForm.vehicleType === 'aircraft'">
-                  <a-select-option value="fighter">战斗机</a-select-option>
-                  <a-select-option value="attacker">攻击机</a-select-option>
-                  <a-select-option value="bomber">轰炸机</a-select-option>
-                </template>
-                <template v-else-if="syncForm.vehicleType === 'ship'">
-                  <a-select-option value="fleet">舰队</a-select-option>
-                  <a-select-option value="coastal">沿海</a-select-option>
-                </template>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          <a-col :span="6">
-            <a-form-item label="具体载具">
-              <a-select 
-                v-model:value="syncForm.vehicle" 
-                :disabled="syncForm.vehicleType === 'any' || loadingVehicles"
-                :loading="loadingVehicles"
-                show-search
-                :filter-option="filterVehicle"
-                @change="fetchData"
-              >
-                <a-select-option value="any">全部载具</a-select-option>
-                <a-select-option v-for="v in vehicleList" :key="v.id" :value="v.id">
-                  {{ v.name }} ({{ v.count }})
-                </a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-row :gutter="16">
-          <a-col :span="6">
-            <a-form-item label="时间范围(天)">
-              <a-select v-model:value="syncForm.period">
-                <a-select-option :value="7">最近7天</a-select-option>
-                <a-select-option :value="30">最近30天</a-select-option>
-                <a-select-option :value="90">最近90天</a-select-option>
-                <a-select-option :value="0">全部时间</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          <a-col :span="6">
-            <a-form-item label="页码">
-              <a-input-number v-model:value="syncForm.page" :min="0" :max="100" style="width: 100%" />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-form-item>
-          <a-space>
-            <a-button type="primary" :loading="syncing" @click="handleSync">
-              <SyncOutlined /> 开始同步涂装
-            </a-button>
-            <a-button :loading="batchSyncing" @click="handleBatchSync">
-              <CloudDownloadOutlined /> 批量同步涂装 (前10页)
-            </a-button>
-          </a-space>
-        </a-form-item>
-      </a-form>
-    </a-card>
+    <h2>载具数据管理</h2>
 
-    <a-card title="载具数据同步" style="margin-top: 16px">
+    <!-- 载具统计 -->
+    <a-row :gutter="16" style="margin-bottom: 16px;">
+      <a-col :span="6">
+        <a-card size="small">
+          <a-statistic title="载具总数" :value="stats.total" :loading="loadingStats" />
+        </a-card>
+      </a-col>
+      <a-col :span="6">
+        <a-card size="small">
+          <a-statistic title="坦克" :value="stats.tank" :loading="loadingStats" />
+        </a-card>
+      </a-col>
+      <a-col :span="6">
+        <a-card size="small">
+          <a-statistic title="飞机" :value="stats.aircraft" :loading="loadingStats" />
+        </a-card>
+      </a-col>
+      <a-col :span="6">
+        <a-card size="small">
+          <a-statistic title="直升机 / 舰船" :value="`${stats.helicopter} / ${stats.ship}`" :loading="loadingStats" />
+        </a-card>
+      </a-col>
+    </a-row>
+
+    <!-- 同步载具数据 -->
+    <a-card title="同步载具数据" style="margin-bottom: 16px;">
       <a-alert
-        message="载具数据同步说明"
-        description="将 JSON 文件中的 3,083 个载具数据（包含涂装数量）同步到数据库中，方便后续查询和统计。"
+        message="从 JSON 文件同步载具数据到数据库，包含 3,083 个载具及其涂装数量统计。"
         type="info"
         show-icon
         style="margin-bottom: 16px"
       />
-      <a-button 
-        type="primary" 
-        :loading="syncingVehicles" 
-        @click="handleSyncVehicles"
-        size="large"
-      >
-        <DatabaseOutlined /> 同步载具数据到数据库
-      </a-button>
+      <a-space>
+        <a-button type="primary" :loading="syncingVehicles" @click="handleSyncVehicles" size="large">
+          <template #icon><DatabaseOutlined /></template>
+          同步载具数据
+        </a-button>
+        <a-button :loading="refreshingCounts" @click="handleRefreshCounts">
+          <template #icon><ReloadOutlined /></template>
+          刷新远程涂装数
+        </a-button>
+      </a-space>
     </a-card>
 
-    <a-card title="同步日志" style="margin-top: 16px">
+    <!-- 载具列表 -->
+    <a-card title="载具列表">
+      <template #extra>
+        <a-space>
+          <a-select v-model:value="filters.type" style="width: 100px" @change="fetchVehicles">
+            <a-select-option value="">全部类型</a-select-option>
+            <a-select-option value="tank">坦克</a-select-option>
+            <a-select-option value="aircraft">飞机</a-select-option>
+            <a-select-option value="helicopter">直升机</a-select-option>
+            <a-select-option value="ship">舰船</a-select-option>
+          </a-select>
+          <a-select v-model:value="filters.country" style="width: 100px" @change="fetchVehicles">
+            <a-select-option value="">全部国家</a-select-option>
+            <a-select-option value="usa">美国</a-select-option>
+            <a-select-option value="germany">德国</a-select-option>
+            <a-select-option value="ussr">苏联</a-select-option>
+            <a-select-option value="britain">英国</a-select-option>
+            <a-select-option value="japan">日本</a-select-option>
+            <a-select-option value="china">中国</a-select-option>
+            <a-select-option value="france">法国</a-select-option>
+            <a-select-option value="italy">意大利</a-select-option>
+            <a-select-option value="sweden">瑞典</a-select-option>
+            <a-select-option value="israel">以色列</a-select-option>
+          </a-select>
+          <a-input-search v-model:value="filters.search" placeholder="搜索载具" style="width: 160px" @search="fetchVehicles" @pressEnter="fetchVehicles" />
+        </a-space>
+      </template>
+      <a-table :columns="columns" :data-source="vehicleList" :loading="loadingList" size="small"
+        :pagination="{ pageSize: 20, showTotal: (t: number) => `共 ${t} 个载具` }" row-key="id">
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'type'">
+            <a-tag :color="typeColor[record.type] || 'default'">{{ typeName[record.type] || record.type }}</a-tag>
+          </template>
+          <template v-if="column.key === 'country'">
+            {{ countryName[record.country] || record.country }}
+          </template>
+          <template v-if="column.key === 'skin_count'">
+            <span :style="{ color: record.skin_count !== record.remote_skin_count ? '#f5222d' : record.skin_count > 0 ? '#52c41a' : '#999', fontWeight: record.skin_count !== record.remote_skin_count ? 'bold' : 'normal' }">{{ record.skin_count }}</span>
+          </template>
+          <template v-if="column.key === 'remote_skin_count'">
+            <span :style="{ fontWeight: record.remote_skin_count > 100 ? 'bold' : 'normal' }">{{ record.remote_skin_count }}</span>
+          </template>
+        </template>
+      </a-table>
+    </a-card>
+
+    <!-- 操作日志 -->
+    <a-card title="操作日志" style="margin-top: 16px" v-if="logs.length > 0">
       <a-timeline>
-        <a-timeline-item v-for="(log, index) in syncLogs" :key="index" :color="log.success ? 'green' : 'red'">
+        <a-timeline-item v-for="(log, index) in logs" :key="index" :color="log.success ? 'green' : 'red'">
           <p>{{ log.time }} - {{ log.message }}</p>
-          <p v-if="log.count !== undefined" style="color: #666">新增 {{ log.count }} 条记录</p>
-        </a-timeline-item>
-        <a-timeline-item v-if="syncLogs.length === 0" color="gray">
-          暂无同步记录
         </a-timeline-item>
       </a-timeline>
     </a-card>
@@ -138,44 +106,85 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { SyncOutlined, CloudDownloadOutlined, DatabaseOutlined } from '@ant-design/icons-vue'
-import { syncSkins, getVehicles, syncVehiclesFromJSON } from '../api'
+import { DatabaseOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { syncVehiclesFromJSON, getVehiclesFromDB, refreshVehicleCounts } from '../api'
 
-const syncing = ref(false)
-const batchSyncing = ref(false)
 const syncingVehicles = ref(false)
-const syncLogs = ref<any[]>([])
-const loadingVehicles = ref(false)
+const refreshingCounts = ref(false)
+const loadingStats = ref(false)
+const loadingList = ref(false)
 const vehicleList = ref<any[]>([])
+const logs = ref<any[]>([])
 
-const syncForm = reactive({
-  vehicleType: 'any',
-  vehicleCountry: 'any',
-  vehicleClass: 'any',
-  vehicle: 'any',
-  period: 7,
-  page: 0
-})
+const stats = reactive({ total: 0, tank: 0, aircraft: 0, helicopter: 0, ship: 0 })
+const filters = reactive({ type: '', country: '', search: '' })
 
-const addLog = (success: boolean, msg: string, count?: number) => {
-  syncLogs.value.unshift({
-    time: new Date().toLocaleString(),
-    success,
-    message: msg,
-    count
-  })
-  if (syncLogs.value.length > 20) {
-    syncLogs.value.pop()
-  }
+const columns = [
+  { title: 'ID', dataIndex: 'wt_live_id', width: 160, ellipsis: true },
+  { title: '名称', dataIndex: 'name', width: 200, ellipsis: true },
+  { title: '类型', key: 'type', width: 80 },
+  { title: '国家', key: 'country', width: 80 },
+  { title: '子类型', dataIndex: 'class', width: 120, ellipsis: true },
+  { title: '本地涂装数', key: 'skin_count', dataIndex: 'skin_count', width: 100, sorter: (a: any, b: any) => a.skin_count - b.skin_count },
+  { title: '远程涂装数', key: 'remote_skin_count', dataIndex: 'remote_skin_count', width: 100, sorter: (a: any, b: any) => a.remote_skin_count - b.remote_skin_count },
+]
+
+const typeName: Record<string, string> = { tank: '坦克', aircraft: '飞机', helicopter: '直升机', ship: '舰船' }
+const typeColor: Record<string, string> = { tank: 'green', aircraft: 'blue', helicopter: 'orange', ship: 'purple' }
+const countryName: Record<string, string> = {
+  usa: '美国', germany: '德国', ussr: '苏联', britain: '英国', japan: '日本',
+  china: '中国', france: '法国', italy: '意大利', sweden: '瑞典', israel: '以色列',
 }
 
-const handleSync = async () => {
-  syncing.value = true
+const addLog = (success: boolean, msg: string) => {
+  logs.value.unshift({ time: new Date().toLocaleString(), success, message: msg })
+  if (logs.value.length > 10) logs.value.pop()
+}
+
+const fetchVehicles = async () => {
+  loadingList.value = true
   try {
-    const res: any = await syncSkins(syncForm)
+    const params: any = {}
+    if (filters.type) params.type = filters.type
+    if (filters.country) params.country = filters.country
+    if (filters.search) params.search = filters.search
+    const res: any = await getVehiclesFromDB(params)
     if (res.status === 'OK') {
-      message.success(`同步成功，新增 ${res.count} 条记录`)
-      addLog(true, `同步 ${syncForm.vehicleType}/${syncForm.vehicleCountry} 第 ${syncForm.page} 页`, res.count)
+      vehicleList.value = res.data || []
+    }
+  } catch (e) {
+    console.error(e)
+  }
+  loadingList.value = false
+}
+
+const fetchStats = async () => {
+  loadingStats.value = true
+  try {
+    const res: any = await getVehiclesFromDB({})
+    if (res.status === 'OK') {
+      const list = res.data || []
+      stats.total = list.length
+      stats.tank = list.filter((v: any) => v.type === 'tank').length
+      stats.aircraft = list.filter((v: any) => v.type === 'aircraft').length
+      stats.helicopter = list.filter((v: any) => v.type === 'helicopter').length
+      stats.ship = list.filter((v: any) => v.type === 'ship').length
+    }
+  } catch (e) {
+    console.error(e)
+  }
+  loadingStats.value = false
+}
+
+const handleSyncVehicles = async () => {
+  syncingVehicles.value = true
+  try {
+    const res: any = await syncVehiclesFromJSON()
+    if (res.status === 'OK') {
+      message.success(res.message || '同步成功')
+      addLog(true, `载具数据同步完成，共 ${res.count || 0} 个`)
+      fetchVehicles()
+      fetchStats()
     } else {
       message.error(res.error || '同步失败')
       addLog(false, res.error || '同步失败')
@@ -183,117 +192,29 @@ const handleSync = async () => {
   } catch (e: any) {
     message.error('同步失败')
     addLog(false, e.message || '同步失败')
-  } finally {
-    syncing.value = false
   }
+  syncingVehicles.value = false
 }
 
-const handleBatchSync = async () => {
-  batchSyncing.value = true
-  let totalCount = 0
-  
+const handleRefreshCounts = async () => {
+  refreshingCounts.value = true
   try {
-    for (let page = 0; page < 10; page++) {
-      const res: any = await syncSkins({
-        ...syncForm,
-        page
-      })
-      if (res.status === 'OK') {
-        totalCount += res.count || 0
-        addLog(true, `批量同步第 ${page + 1}/10 页`, res.count)
-      }
-      // 延迟避免请求过快
-      await new Promise(resolve => setTimeout(resolve, 500))
-    }
-    message.success(`批量同步完成，共新增 ${totalCount} 条记录`)
-  } catch (e: any) {
-    message.error('批量同步失败')
-    addLog(false, e.message || '批量同步失败')
-  } finally {
-    batchSyncing.value = false
-  }
-}
-
-// 载具类型改变时重置子类型和载具
-const onVehicleTypeChange = () => {
-  syncForm.vehicleClass = 'any'
-  syncForm.vehicle = 'any'
-  vehicleList.value = []
-  if (syncForm.vehicleType !== 'any') {
-    loadVehicles()
-  }
-}
-
-// 国家改变时重新加载载具列表
-const onCountryChange = () => {
-  syncForm.vehicle = 'any'
-  if (syncForm.vehicleType !== 'any') {
-    loadVehicles()
-  }
-}
-
-// 子类型改变时重新加载载具列表
-const onClassChange = () => {
-  syncForm.vehicle = 'any'
-  if (syncForm.vehicleType !== 'any') {
-    loadVehicles()
-  }
-}
-
-// 加载载具列表
-const loadVehicles = async () => {
-  if (syncForm.vehicleType === 'any') return
-  
-  loadingVehicles.value = true
-  try {
-    const params: any = {
-      type: syncForm.vehicleType
-    }
-    if (syncForm.vehicleCountry !== 'any') {
-      params.country = syncForm.vehicleCountry
-    }
-    if (syncForm.vehicleClass !== 'any') {
-      params.class = syncForm.vehicleClass
-    }
-    
-    const res: any = await getVehicles(params)
+    const res: any = await refreshVehicleCounts({})
     if (res.status === 'OK') {
-      vehicleList.value = res.data || []
-    }
-  } catch (e) {
-    console.error('加载载具列表失败', e)
-  } finally {
-    loadingVehicles.value = false
-  }
-}
-
-// 同步载具数据到数据库
-const handleSyncVehicles = async () => {
-  syncingVehicles.value = true
-  try {
-    const res: any = await syncVehiclesFromJSON()
-    if (res.status === 'OK') {
-      message.success(res.message || `同步成功，共 ${res.count} 个载具`)
-      addLog(true, `载具数据同步到数据库`, res.count)
+      message.success('涂装数量刷新完成')
+      addLog(true, '涂装数量刷新完成')
+      fetchVehicles()
     } else {
-      message.error(res.error || '同步失败')
-      addLog(false, res.error || '载具数据同步失败')
+      message.error(res.error || '刷新失败')
     }
   } catch (e: any) {
-    message.error('同步失败')
-    addLog(false, e.message || '载具数据同步失败')
-  } finally {
-    syncingVehicles.value = false
+    message.error('刷新失败')
   }
-}
-
-// 载具搜索过滤
-const filterVehicle = (input: string, option: any) => {
-  const text = option.children?.[0]?.children || ''
-  return text.toLowerCase().includes(input.toLowerCase())
+  refreshingCounts.value = false
 }
 
 onMounted(() => {
-  // 初始化
+  fetchStats()
+  fetchVehicles()
 })
 </script>

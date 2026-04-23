@@ -20,7 +20,7 @@
         </a-menu-item>
         <a-menu-item key="sync" @click="$router.push('/sync')">
           <SyncOutlined />
-          <span>数据同步</span>
+          <span>载具数据管理</span>
         </a-menu-item>
         <a-menu-item key="sync-vehicles" @click="$router.push('/sync-vehicles')">
           <CloudSyncOutlined />

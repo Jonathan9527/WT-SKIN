@@ -102,7 +102,8 @@ type Vehicle struct {
 	Class       string    `gorm:"size:50;index" json:"class"`              // 子类型
 	Rank        int       `gorm:"index" json:"rank"`                       // 等级
 	BR          float64   `json:"br"`                                      // 战斗评级
-	SkinCount   int       `gorm:"default:0;index" json:"skin_count"`       // 涂装数量（从 War Thunder Live 获取）
+	SkinCount       int       `gorm:"default:0;index" json:"skin_count"`       // 本地涂装数量（从 skin_vehicles 统计）
+	RemoteSkinCount int       `gorm:"default:0" json:"remote_skin_count"`      // 远程涂装数量（从 WT Live 获取）
 	ImageURL    string    `gorm:"size:500" json:"image_url"`               // 载具图片
 	Description string    `gorm:"type:text" json:"description"`            // 描述
 	CreatedAt   time.Time `json:"created_at"`

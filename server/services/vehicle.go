@@ -288,6 +288,19 @@ func GetVehiclesByFilter(vehicleType, country, class string, cleanNames bool) ([
 	return vehicles, nil
 }
 
+// GetVehicleHierarchy 读取并返回载具层级数据
+func GetVehicleHierarchy() (map[string]VehicleInfo, error) {
+	data, err := os.ReadFile("data/vehicles_complete.json")
+	if err != nil {
+		return nil, fmt.Errorf("读取载具数据失败: %w", err)
+	}
+	var hierarchy VehicleHierarchy
+	if err := json.Unmarshal(data, &hierarchy); err != nil {
+		return nil, fmt.Errorf("解析载具数据失败: %w", err)
+	}
+	return hierarchy.Vehicles, nil
+}
+
 // SyncVehiclesFromJSON 从 JSON 文件同步载具数据到数据库
 func SyncVehiclesFromJSON() (int, error) {
 	// 读取 JSON 文件
@@ -302,48 +315,58 @@ func SyncVehiclesFromJSON() (int, error) {
 		return 0, fmt.Errorf("解析载具数据失败: %w", err)
 	}
 
+	// 预先统计本地涂装数
+	type LocalCount struct {
+		VehicleID string
+		Count     int
+	}
+	var localCounts []LocalCount
+	database.DB.Raw(`SELECT vehicle_id, COUNT(DISTINCT skin_id) as count FROM skin_vehicles GROUP BY vehicle_id`).Scan(&localCounts)
+	localMap := make(map[string]int)
+	for _, lc := range localCounts {
+		localMap[lc.VehicleID] = lc.Count
+	}
+
 	count := 0
 	for vehicleID, vehicleInfo := range hierarchy.Vehicles {
 		if vehicleID == "" {
 			continue
 		}
 
-		// 确定载具类型、国家和子类型（取第一个）
 		vehicleType := ""
 		if len(vehicleInfo.VehicleType) > 0 {
 			vehicleType = vehicleInfo.VehicleType[0]
 		}
-
 		country := ""
 		if len(vehicleInfo.VehicleCountry) > 0 {
 			country = vehicleInfo.VehicleCountry[0]
 		}
-
 		class := ""
 		if len(vehicleInfo.VehicleClass) > 0 {
 			class = vehicleInfo.VehicleClass[0]
 		}
 
-		// 检查是否已存在
+		localSkinCount := localMap[vehicleID]
+
 		var existing models.Vehicle
 		if database.DB.Where("wt_live_id = ?", vehicleID).First(&existing).Error == nil {
-			// 更新现有记录
 			existing.Name = vehicleInfo.Name
 			existing.Type = vehicleType
 			existing.Country = country
 			existing.Class = class
-			existing.SkinCount = vehicleInfo.Count
+			existing.SkinCount = localSkinCount
+			existing.RemoteSkinCount = vehicleInfo.Count
 			database.DB.Save(&existing)
 			count++
 		} else {
-			// 创建新记录
 			vehicle := models.Vehicle{
-				WTLiveID:  vehicleID,
-				Name:      vehicleInfo.Name,
-				Type:      vehicleType,
-				Country:   country,
-				Class:     class,
-				SkinCount: vehicleInfo.Count,
+				WTLiveID:        vehicleID,
+				Name:            vehicleInfo.Name,
+				Type:            vehicleType,
+				Country:         country,
+				Class:           class,
+				SkinCount:       localSkinCount,
+				RemoteSkinCount: vehicleInfo.Count,
 			}
 			if err := database.DB.Create(&vehicle).Error; err == nil {
 				count++

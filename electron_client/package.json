@@ -4,8 +4,46 @@
   "main": "main.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "build": "vite build && electron-builder",
+    "build": "vite build && electron-builder --win",
     "vite": "vite"
+  },
+  "build": {
+    "appId": "com.warthunder.skin-downloader",
+    "productName": "WT涂装下载器",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "local-db.js",
+      "cache.js",
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "data",
+        "to": "data",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WT涂装下载器"
+    }
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.0",
@@ -28,6 +66,7 @@
     "autoprefixer": "^10.4.0",
     "concurrently": "^8.2.0",
     "electron": "^31.0.0",
+    "electron-builder": "^26.8.1",
     "electron-rebuild": "^3.2.9",
     "mysql2": "^3.22.2",
     "postcss": "^8.4.0",

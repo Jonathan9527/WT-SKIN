@@ -11,5 +11,5 @@ export const VEHICLE_CLASSES: Record<string, Record<string, string>> = {
   helicopter: { any: '全部子类型', attack_helicopter: '攻击直升机', utility_helicopter: '通用直升机' },
   ship: { any: '全部子类型', fleet: '舰队', coastal: '沿海' },
 };
-export const SORT_OPTIONS: Record<string, string> = { created: '最新', likes: '最多点赞', views: '最多浏览', downloads: '最多下载' };
+export const SORT_OPTIONS: Record<string, string> = { newest: '最新', created: '发布时间', likes: '最多点赞', views: '最多浏览', downloads: '最多下载' };
 export const PERIOD_OPTIONS: Record<string, number> = { '所有时间': 0, '最近7天': 7, '最近30天': 30, '最近90天': 90, '最近1年': 365 };

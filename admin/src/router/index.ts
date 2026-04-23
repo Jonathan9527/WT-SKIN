@@ -35,7 +35,7 @@ const router = createRouter({
           path: 'sync',
           name: 'Sync',
           component: () => import('../views/Sync.vue'),
-          meta: { title: '数据同步', icon: 'sync' }
+          meta: { title: '载具数据管理', icon: 'sync' }
         },
         {
           path: 'sync-vehicles',

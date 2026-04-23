@@ -185,7 +185,7 @@
         <a-descriptions bordered :column="2" style="margin-top: 16px">
           <a-descriptions-item label="标题" :span="2">{{ currentSkin.title }}</a-descriptions-item>
           <a-descriptions-item label="描述" :span="2">
-            <div v-html="currentSkin.description" class="detail-description"></div>
+            <div v-html="currentSkin.description" class="detail-description" style="max-width: 680px;"></div>
           </a-descriptions-item>
           <a-descriptions-item label="作者">{{ currentSkin.author || '(未知)' }}</a-descriptions-item>
           <a-descriptions-item label="WT Live ID">{{ currentSkin.wt_live_id }}</a-descriptions-item>
@@ -602,10 +602,13 @@ onMounted(() => {
 .detail-description {
   max-height: 150px;
   overflow-y: auto;
+  overflow-x: hidden;
   word-break: break-word;
+  max-width: 100%;
 }
 .detail-description img {
-  max-width: 100%;
-  height: auto;
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
 }
 </style>

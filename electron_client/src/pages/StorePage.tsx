@@ -18,7 +18,7 @@ const StorePage: React.FC = () => {
 
   const [filters, setFilters] = useState({
     vehicleType: 'any', vehicleCountry: 'any', vehicleClass: 'any',
-    vehicle: 'any', sort: 'created', period: '所有时间', search: '',
+    vehicle: 'any', sort: 'likes', period: '所有时间', search: '',
   });
 
   const isElectron = !!window.electronAPI?.dbQuerySkins;
@@ -126,8 +126,8 @@ const StorePage: React.FC = () => {
     <>
       {/* 筛选栏 */}
       <div className="px-3 py-2 border-b bg-white dark:bg-slate-900 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mr-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mr-1 shrink-0">
             <SlidersHorizontal size={12} /><span>筛选</span>
           </div>
           <FilterPill value={filters.vehicleType} options={VEHICLE_TYPES} onChange={v => update('vehicleType', v)} />
@@ -136,19 +136,19 @@ const StorePage: React.FC = () => {
             disabled={filters.vehicleType === 'any'} />
           <select value={filters.vehicle} onChange={e => update('vehicle', e.target.value)}
             disabled={filters.vehicleType === 'any'}
-            className="h-6 text-[11px] border border-slate-200 rounded-full px-2 bg-white disabled:opacity-40 max-w-[130px] focus:outline-none focus:ring-1 focus:ring-blue-400">
+            className="h-6 text-[11px] border border-slate-200 rounded-full px-2 bg-white disabled:opacity-40 w-[100px] shrink-0 focus:outline-none focus:ring-1 focus:ring-blue-400">
             <option value="any">全部载具</option>
             {vehicles.map((v: any) => <option key={v.wt_live_id} value={v.wt_live_id}>{v.name} ({v.skin_count})</option>)}
           </select>
-          <div className="w-px h-4 bg-slate-200 mx-0.5" />
+          <div className="w-px h-4 bg-slate-200 mx-0.5 shrink-0" />
           <FilterPill value={filters.sort} options={SORT_OPTIONS} onChange={v => update('sort', v)} />
           <FilterPill value={filters.period} options={Object.fromEntries(Object.keys(PERIOD_OPTIONS).map(k => [k, k]))} onChange={v => update('period', v)} />
-          <div className="relative ml-auto">
+          <div className="relative ml-auto shrink-0">
             <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
             <input value={filters.search} onChange={e => setFilters(p => ({ ...p, search: e.target.value }))}
               onKeyDown={e => e.key === 'Enter' && fetchSkins(0)}
-              placeholder="搜索涂装..."
-              className="h-6 text-[11px] border border-slate-200 rounded-full pl-6 pr-2 w-32 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:bg-white transition-colors" />
+              placeholder="搜索..."
+              className="h-6 text-[11px] border border-slate-200 rounded-full pl-6 pr-2 w-24 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:bg-white focus:w-32 transition-all" />
           </div>
         </div>
       </div>
@@ -197,9 +197,9 @@ const StorePage: React.FC = () => {
                     <span className="flex items-center gap-0.5"><ThumbsUp size={9} />{skin.likes}</span>
                     <span className="flex items-center gap-0.5"><Eye size={9} />{skin.views}</span>
                   </div>
-                  {skin.vehicle_name && (
-                    <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full truncate max-w-[80px]">
-                      {skin.vehicle_name}
+                  {(skin.related_vehicle_name || skin.vehicle_name) && (
+                    <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-full truncate max-w-[120px]">
+                      {skin.related_vehicle_name || skin.vehicle_name}
                     </span>
                   )}
                 </div>

@@ -141,22 +141,23 @@ function querySkins({ vehicleType, vehicleCountry, vehicleClass, vehicle, sort, 
   const conditions = [];
   const params = [];
 
-  if (vehicleType && vehicleType !== 'any') {
-    conditions.push('vehicle_type = ?');
-    params.push(vehicleType);
-  }
-  if (vehicleCountry && vehicleCountry !== 'any') {
-    conditions.push('vehicle_countries LIKE ?');
-    params.push(`%${vehicleCountry}%`);
-  }
-  if (vehicleClass && vehicleClass !== 'any') {
-    conditions.push('vehicle_class = ?');
-    params.push(vehicleClass);
-  }
   if (vehicle && vehicle !== 'any') {
-    // 通过 skin_vehicles 关联查询
+    // 指定具体载具时，只通过关联表查询，忽略类型/国家/子类型
     conditions.push('id IN (SELECT skin_id FROM skin_vehicles WHERE vehicle_id = ?)');
     params.push(vehicle);
+  } else {
+    if (vehicleType && vehicleType !== 'any') {
+      conditions.push('vehicle_type = ?');
+      params.push(vehicleType);
+    }
+    if (vehicleCountry && vehicleCountry !== 'any') {
+      conditions.push('vehicle_countries LIKE ?');
+      params.push(`%${vehicleCountry}%`);
+    }
+    if (vehicleClass && vehicleClass !== 'any') {
+      conditions.push('vehicle_class = ?');
+      params.push(vehicleClass);
+    }
   }
   if (search) {
     conditions.push('(title LIKE ? OR author LIKE ? OR description LIKE ?)');
@@ -171,12 +172,13 @@ function querySkins({ vehicleType, vehicleCountry, vehicleClass, vehicle, sort, 
   const where = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
   // 排序
-  let orderBy = 'created_ts DESC';
+  let orderBy = 'id DESC';
   switch (sort) {
     case 'likes': orderBy = 'likes DESC'; break;
     case 'views': orderBy = 'views DESC'; break;
     case 'downloads': orderBy = 'downloads DESC'; break;
-    case 'created': default: orderBy = 'created_ts DESC'; break;
+    case 'created': orderBy = 'created_ts DESC'; break;
+    case 'newest': default: orderBy = 'wt_live_id DESC'; break;
   }
 
   const offset = (page || 0) * (pageSize || 9);
@@ -191,12 +193,33 @@ function querySkins({ vehicleType, vehicleCountry, vehicleClass, vehicle, sort, 
     `SELECT * FROM skins ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
   ).all(...params, limit, offset);
 
-  // 转换 boolean 字段
-  const list = skins.map(s => ({
-    ...s,
-    featured: !!s.featured,
-    pbr_ready: !!s.pbr_ready,
-  }));
+  // 转换 boolean 字段 + 查询关联载具名称
+  const svStmt = database.prepare(
+    `SELECT v.name FROM skin_vehicles sv JOIN vehicles v ON CAST(sv.vehicle_id AS TEXT) = CAST(v.wt_live_id AS TEXT) WHERE sv.skin_id = ? LIMIT 1`
+  );
+  const svByIdStmt = vehicle && vehicle !== 'any'
+    ? database.prepare(
+        `SELECT v.name FROM skin_vehicles sv JOIN vehicles v ON CAST(sv.vehicle_id AS TEXT) = CAST(v.wt_live_id AS TEXT) WHERE sv.skin_id = ? AND sv.vehicle_id = ? LIMIT 1`
+      )
+    : null;
+
+  const list = skins.map(s => {
+    let vName = '';
+    if (svByIdStmt) {
+      const row = svByIdStmt.get(s.id, vehicle);
+      vName = row ? row.name : '';
+    }
+    if (!vName) {
+      const row = svStmt.get(s.id);
+      vName = row ? row.name : '';
+    }
+    return {
+      ...s,
+      featured: !!s.featured,
+      pbr_ready: !!s.pbr_ready,
+      related_vehicle_name: vName,
+    };
+  });
 
   return { list, total, page: page || 0 };
 }

@@ -9,9 +9,20 @@ const SkinDetail: React.FC<{ skin: Skin; onBack: () => void }> = ({ skin, onBack
   const formatSize = (b: number) => b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : b > 1024 ? `${(b / 1024).toFixed(0)} KB` : `${b} B`;
   const allImages = extractImages(skin);
 
-  const [dlState, setDlState] = useState<'idle' | 'downloading' | 'done' | 'error'>('idle');
+  const [dlState, setDlState] = useState<'idle' | 'downloading' | 'done' | 'error' | 'installed'>('idle');
   const [dlMsg, setDlMsg] = useState('');
   const [progress, setProgress] = useState(0);
+
+  // 检查是否已安装
+  useEffect(() => {
+    if (!window.electronAPI?.getInstalledSkins) return;
+    window.electronAPI.getInstalledSkins().then(res => {
+      if (res.success && res.skins.some((s: any) => s.wt_live_id === skin.wt_live_id)) {
+        setDlState('installed');
+        setDlMsg('已安装');
+      }
+    });
+  }, [skin.wt_live_id]);
 
   // 监听下载进度
   useEffect(() => {
@@ -33,8 +44,8 @@ const SkinDetail: React.FC<{ skin: Skin; onBack: () => void }> = ({ skin, onBack
       const result = await window.electronAPI.downloadSkin(skin);
       if (result.success) {
         setProgress(100);
-        setDlState('done');
-        setDlMsg('已安装到 UserSkins');
+        setDlState('installed');
+        setDlMsg('已安装');
       } else {
         setDlState('error');
         setDlMsg(result.error || '下载失败');
@@ -43,7 +54,6 @@ const SkinDetail: React.FC<{ skin: Skin; onBack: () => void }> = ({ skin, onBack
       setDlState('error');
       setDlMsg('下载失败');
     }
-    setTimeout(() => { setDlState('idle'); setProgress(0); }, 3000);
   };
 
   return (
@@ -136,18 +146,18 @@ const SkinDetail: React.FC<{ skin: Skin; onBack: () => void }> = ({ skin, onBack
               </div>
             )}
 
-            <button onClick={handleDownload} disabled={dlState === 'downloading'}
+            <button onClick={handleDownload} disabled={dlState === 'downloading' || dlState === 'installed'}
               className={`w-full h-10 rounded-xl text-sm font-medium text-white flex items-center justify-center gap-2 transition-all ${
-                dlState === 'done' ? 'bg-green-500' :
+                dlState === 'installed' ? 'bg-green-500' :
                 dlState === 'error' ? 'bg-red-500' :
                 dlState === 'downloading' ? 'bg-emerald-600 opacity-80' :
                 'bg-gradient-to-r from-green-500 to-emerald-500 hover:shadow-lg hover:shadow-green-500/25 active:scale-[0.98]'
               } disabled:cursor-not-allowed`}>
               {dlState === 'downloading' && <Loader2 size={16} className="animate-spin" />}
-              {dlState === 'done' && <CheckCircle2 size={16} />}
+              {dlState === 'installed' && <CheckCircle2 size={16} />}
               {dlState === 'error' && <XCircle size={16} />}
               {dlState === 'idle' && <Download size={16} />}
-              {dlState === 'downloading' ? `下载中 ${progress}%` : dlState === 'done' ? dlMsg : dlState === 'error' ? dlMsg : '下载涂装'}
+              {dlState === 'downloading' ? `下载中 ${progress}%` : dlState === 'installed' ? '已安装' : dlState === 'error' ? dlMsg : '下载涂装'}
             </button>
           </div>
         </div>

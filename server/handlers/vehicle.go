@@ -53,7 +53,6 @@ func GetVehiclesFromDB(c *gin.Context) {
 		query = query.Where("class = ?", class)
 	}
 
-	// 按涂装数量降序排序
 	query = query.Order("skin_count DESC, name ASC")
 	query.Find(&vehicles)
 
@@ -103,24 +102,27 @@ func SyncVehiclesFromJSON(c *gin.Context) {
 }
 
 
-// RefreshVehicleCounts 刷新载具涂装数量
+// RefreshVehicleCounts 从 JSON 文件刷新远程涂装数量（remote_skin_count）
 func RefreshVehicleCounts(c *gin.Context) {
-	vehicleType := c.Query("type")
-	country := c.Query("country")
-	class := c.Query("class")
-
-	result, err := services.RefreshVehicleCountsFromSkinAPI(vehicleType, country, class)
+	// 读取 JSON 文件获取远程涂装数
+	data, err := services.GetVehicleHierarchy()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": "ERROR",
-			"error":  err.Error(),
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "ERROR", "error": err.Error()})
 		return
 	}
 
+	updated := 0
+	for vehicleID, info := range data {
+		res := database.DB.Model(&models.Vehicle{}).Where("wt_live_id = ?", vehicleID).Update("remote_skin_count", info.Count)
+		if res.RowsAffected > 0 {
+			updated++
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"status": "OK",
-		"data":   result,
+		"status":  "OK",
+		"message": fmt.Sprintf("已更新 %d 个载具的远程涂装数量", updated),
+		"count":   updated,
 	})
 }
 

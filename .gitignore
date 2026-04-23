@@ -37,3 +37,6 @@ admin/dist/
 # SQLite data packs (too large for git)
 electron_client/data/*.db
 server/data/packs/
+
+# Electron build output
+electron_client/release/
