@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Store, Settings, Info, Crosshair, FolderHeart, Gamepad2 } from 'lucide-react';
+import { Store, Settings, Info, FolderHeart, Gamepad2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import logo from '@/assets/logo.png';
 import TitleBar from './components/TitleBar';
 import StorePage from './pages/StorePage';
 import SkinsManager from './pages/SkinsManager';
@@ -46,8 +47,8 @@ const App: React.FC = () => {
         {/* 侧边栏 */}
         <div className="w-44 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white flex flex-col shadow-xl">
           <div className="p-4 flex items-center gap-2 border-b border-white/10">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <Crosshair size={16} className="text-white" />
+            <div className="w-8 h-8 rounded-lg overflow-hidden shadow-lg shadow-blue-500/20">
+              <img src={logo} alt="logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <div className="text-xs font-bold leading-tight">War Thunder</div>

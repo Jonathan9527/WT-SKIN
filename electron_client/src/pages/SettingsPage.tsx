@@ -20,6 +20,10 @@ const SettingsPage: React.FC = () => {
   const [remoteVersion, setRemoteVersion] = useState<{ available: boolean; version?: string; skinCount?: number; vehicleCount?: number; size?: number } | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
 
+  const [checkResult, setCheckResult] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+
+  const hasUpdate = remoteVersion?.available && dbStats && remoteVersion.version !== dbStats.version;
+
   const isElectron = !!window.electronAPI;
 
   // 启动时自动检测 + 加载数据库状态 + 检查更新
@@ -48,8 +52,9 @@ const SettingsPage: React.FC = () => {
 
   const checkForUpdate = async () => {
     setCheckingUpdate(true);
+    setCheckResult(null);
     try {
-      const res = await fetch(`${url}/client/datapack/version`);
+      const res = await fetch(`${url}/client/datapack/version`, { signal: AbortSignal.timeout(5000) });
       const data = await res.json();
       if (data.status === 'OK' && data.available && data.data) {
         setRemoteVersion({
@@ -59,11 +64,19 @@ const SettingsPage: React.FC = () => {
           vehicleCount: data.data.vehicle_count,
           size: data.data.size,
         });
+        const localVer = dbStats?.version;
+        if (localVer && localVer === data.data.version) {
+          setCheckResult({ type: 'success', message: '已是最新版本' });
+        } else {
+          setCheckResult({ type: 'info', message: `发现新版本: ${data.data.version}` });
+        }
       } else {
         setRemoteVersion({ available: false });
+        setCheckResult({ type: 'info', message: data.message || '服务器暂无已发布的数据包' });
       }
     } catch (e) {
       setRemoteVersion(null);
+      setCheckResult({ type: 'error', message: '接口繁忙，请稍后再试' });
     }
     setCheckingUpdate(false);
   };
@@ -188,23 +201,18 @@ const SettingsPage: React.FC = () => {
             </div>
           )}
 
-          {/* 版本检测 */}
-          {remoteVersion && remoteVersion.available && dbStats && (
+          {/* 检测结果 */}
+          {checkResult && (
             <div className={`text-xs px-3 py-2 rounded-lg border flex items-center gap-1.5 ${
-              remoteVersion.version !== dbStats.version
-                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800'
-                : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-800'
+              checkResult.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-800' :
+              checkResult.type === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border-red-100 dark:border-red-800' :
+              'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800'
             }`}>
-              {remoteVersion.version !== dbStats.version ? (
-                <><RefreshCw size={12} />发现新版本: {remoteVersion.version}（涂装: {remoteVersion.skinCount?.toLocaleString()}, 大小: {formatSize(remoteVersion.size || 0)}）</>
-              ) : (
-                <><CheckCircle2 size={12} />已是最新版本</>
+              {checkResult.type === 'success' ? <CheckCircle2 size={12} /> : checkResult.type === 'error' ? <XCircle size={12} /> : <RefreshCw size={12} />}
+              {checkResult.message}
+              {hasUpdate && remoteVersion && (
+                <span className="ml-1 text-slate-400">（涂装: {remoteVersion.skinCount?.toLocaleString()}, 大小: {formatSize(remoteVersion.size || 0)}）</span>
               )}
-            </div>
-          )}
-          {remoteVersion === null && !checkingUpdate && (
-            <div className="text-xs px-3 py-2 rounded-lg border bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700 flex items-center gap-1.5">
-              <XCircle size={12} />无法连接服务器，请检查服务器地址
             </div>
           )}
 
@@ -239,7 +247,7 @@ const SettingsPage: React.FC = () => {
 
           {/* 同步按钮 */}
           <div className="flex gap-2">
-            <button onClick={handleSyncDataPack} disabled={syncing || !isElectron}
+            <button onClick={handleSyncDataPack} disabled={syncing || !isElectron || !hasUpdate}
               className="h-8 px-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg text-xs font-medium hover:shadow-md hover:shadow-blue-500/20 transition-all flex items-center gap-1.5 disabled:opacity-50">
               {syncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               {syncing ? '同步中...' : dbStats && dbStats.skinCount > 0 ? '更新数据包' : '同步数据包'}

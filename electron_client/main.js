@@ -37,6 +37,7 @@ function createWindow() {
     width: 960, height: 720, resizable: false,
     frame: false,
     titleBarStyle: 'hidden',
+    icon: path.join(__dirname, 'assets', 'icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
